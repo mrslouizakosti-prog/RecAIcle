@@ -1,3 +1,7 @@
+<!-- IMPORTANT: Teachable Machine library -->
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+<script>
 const URL = "https://teachablemachine.withgoogle.com/models/YIf5c0Y8X/";
 let model, webcam, maxPredictions;
 let webcamRunning = false;
@@ -7,14 +11,23 @@ const uploadedImage = document.getElementById("uploadedImage");
 const loading = document.getElementById("loading");
 const predictionBox = document.getElementById("prediction");
 
+// -------------------------
+// LOAD TEACHABLE MACHINE MODEL
+// -------------------------
 async function loadModel() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
     model = await tmImage.load(modelURL, metadataURL);
     maxPredictions = model.getTotalClasses();
+    console.log("Model loaded");
 }
 
-loadModel();
+// Ensure model is loaded before anything else
+window.onload = async () => {
+    loading.classList.remove("hidden");
+    await loadModel();
+    loading.classList.add("hidden");
+};
 
 // -------------------------
 // START WEBCAM
@@ -26,10 +39,17 @@ document.getElementById("startWebcamBtn").onclick = async () => {
     predictionBox.textContent = "";
 
     webcam = new tmImage.Webcam(300, 300, true);
-    await webcam.setup();
-    await webcam.play();
-    webcamRunning = true;
 
+    try {
+        await webcam.setup(); // request permissions
+        await webcam.play();
+    } catch (err) {
+        alert("Webcam access blocked or not supported.");
+        console.error(err);
+        return;
+    }
+
+    webcamRunning = true;
     webcamContainer.innerHTML = "";
     webcamContainer.appendChild(webcam.canvas);
 
@@ -45,8 +65,8 @@ document.getElementById("stopWebcamBtn").onclick = () => {
     if (webcam && webcam.stream) {
         webcam.stop();
         webcamRunning = false;
-        document.getElementById("stopWebcamBtn").classList.add("hidden");
         webcamContainer.innerHTML = "";
+        document.getElementById("stopWebcamBtn").classList.add("hidden");
     }
 };
 
@@ -72,31 +92,31 @@ document.getElementById("imageUpload").onchange = async function (event) {
     }
 
     const file = event.target.files[0];
-    uploadedImage.src = URL.createObjectURL(file);
-    uploadedImage.classList.remove("hidden");
+    if (!file) return;
 
     loading.classList.remove("hidden");
 
-    setTimeout(async () => {
+    uploadedImage.onload = async () => {
         await predict(uploadedImage);
         loading.classList.add("hidden");
-    }, 500);
+    };
+
+    uploadedImage.src = URL.createObjectURL(file);
+    uploadedImage.classList.remove("hidden");
 };
 
 // -------------------------
-// PREDICT ONE BEST CLASS
+// PREDICT
 // -------------------------
 async function predict(source) {
     loading.style.display = "block";
 
     const prediction = await model.predict(source);
     
-    // Get the best prediction
-    let best = prediction[0];
-    for (let p of prediction) {
-        if (p.probability > best.probability) best = p;
-    }
+    // Find the highest probability class
+    let best = prediction.reduce((a, b) => (a.probability > b.probability ? a : b));
 
     loading.style.display = "none";
     predictionBox.innerHTML = `${best.className} — ${(best.probability * 100).toFixed(1)}%`;
 }
+</script>
