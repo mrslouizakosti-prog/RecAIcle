@@ -1,70 +1,97 @@
-// === MODEL LOAD ===
 const URL = "https://teachablemachine.withgoogle.com/models/YIf5c0Y8X/";
+let model, webcam, maxPredictions;
+let webcamRunning = false;
 
-let model, maxPredictions, webcam, labelContainer;
+const webcamContainer = document.getElementById("webcam-container");
+const uploadedImage = document.getElementById("uploadedImage");
+const loading = document.getElementById("loading");
+const predictionBox = document.getElementById("prediction");
 
 async function loadModel() {
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
-
     model = await tmImage.load(modelURL, metadataURL);
     maxPredictions = model.getTotalClasses();
-
-    labelContainer = document.getElementById("label-container");
-    labelContainer.innerHTML = ""; 
-
-    for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
-    }
 }
 
-// === WEBCAM MODE ===
-document.getElementById("startWebcamBtn").addEventListener("click", async () => {
-    await loadModel();
+loadModel();
 
-    const flip = true;
-    webcam = new tmImage.Webcam(250, 250, flip);
+// -------------------------
+// START WEBCAM
+// -------------------------
+document.getElementById("startWebcamBtn").onclick = async () => {
+    if (webcamRunning) return;
 
+    uploadedImage.classList.add("hidden");
+    predictionBox.textContent = "";
+
+    webcam = new tmImage.Webcam(300, 300, true);
     await webcam.setup();
     await webcam.play();
+    webcamRunning = true;
+
+    webcamContainer.innerHTML = "";
+    webcamContainer.appendChild(webcam.canvas);
+
+    document.getElementById("stopWebcamBtn").classList.remove("hidden");
+
     window.requestAnimationFrame(loop);
+};
 
-    document.getElementById("webcam-container").innerHTML = "";
-    document.getElementById("webcam-container").appendChild(webcam.canvas);
+// -------------------------
+// STOP WEBCAM
+// -------------------------
+document.getElementById("stopWebcamBtn").onclick = () => {
+    if (webcam && webcam.stream) {
+        webcam.stop();
+        webcamRunning = false;
+        document.getElementById("stopWebcamBtn").classList.add("hidden");
+        webcamContainer.innerHTML = "";
+    }
+};
 
-    document.getElementById("uploaded-image").style.display = "none";
-});
-
+// -------------------------
+// WEBCAM LOOP
+// -------------------------
 async function loop() {
+    if (!webcamRunning) return;
     webcam.update();
     await predict(webcam.canvas);
     window.requestAnimationFrame(loop);
 }
 
-// === UPLOAD IMAGE MODE ===
-document.getElementById("imageUpload").addEventListener("change", async (event) => {
-    await loadModel();
+// -------------------------
+// FILE UPLOAD
+// -------------------------
+document.getElementById("imageUpload").onchange = async function (event) {
+    if (webcamRunning) {
+        webcam.stop();
+        webcamRunning = false;
+        webcamContainer.innerHTML = "";
+        document.getElementById("stopWebcamBtn").classList.add("hidden");
+    }
 
     const file = event.target.files[0];
-    const img = document.getElementById("uploaded-image");
+    uploadedImage.src = URL.createObjectURL(file);
+    uploadedImage.classList.remove("hidden");
 
-    img.src = URL.createObjectURL(file);
-    img.style.display = "block";
+    loading.classList.remove("hidden");
 
-    document.getElementById("webcam-container").innerHTML = "";
+    setTimeout(async () => {
+        await predict(uploadedImage);
+        loading.classList.add("hidden");
+    }, 500);
+};
 
-    img.onload = async () => {
-        await predict(img);
-    };
-});
-
-// === PREDICT FUNCTION ===
+// -------------------------
+// PREDICT ONE BEST CLASS
+// -------------------------
 async function predict(input) {
     const prediction = await model.predict(input);
 
-    for (let i = 0; i < maxPredictions; i++) {
-        const classPrediction =
-            `${prediction[i].className}: ${(prediction[i].probability * 100).toFixed(1)}%`;
-        labelContainer.childNodes[i].innerHTML = classPrediction;
-    }
+    prediction.sort((a, b) => b.probability - a.probability);
+
+    const best = prediction[0];
+
+    predictionBox.textContent = `${best.className}`;
 }
