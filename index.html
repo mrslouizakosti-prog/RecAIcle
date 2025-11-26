@@ -1,45 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RecAIcle</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-    <header>
-        <h1>RecAIcle</h1>
-        <p class="subtitle">Make Recycling Possible</p>
-    </header>
+    <div class="top-left">
+        <button id="startWebcamBtn">Use Webcam</button>
+        <button id="stopWebcamBtn" class="hidden">Stop Webcam</button>
 
-    <main>
-        <div class="card">
-            <h2>Classify Your Waste</h2>
+        <label class="upload-btn">
+            Upload Image
+            <input type="file" id="imageUpload" accept="image/*">
+        </label>
+    </div>
 
-            <div class="button-row">
-                <button id="startWebcamBtn">Start Webcam</button>
-                <input type="file" id="imageUpload" accept="image/*">
-            </div>
+    <h1 class="title">RecAIcle: Making Recycling Possible</h1>
 
-            <div id="webcam-container"></div>
+    <div id="display-box">
+        <div id="webcam-container"></div>
+        <img id="uploadedImage" class="hidden" />
+    </div>
 
-            <img id="uploaded-image" style="display:none;" />
+    <div id="loading" class="hidden">🔄 Loading...</div>
 
-            <div id="label-container"></div>
-        </div>
-    </main>
+    <div id="prediction" class="prediction"></div>
 
-    <footer>
-        RecAIcle © 2025 — Powered by AI
-    </footer>
+    <p class="info-text">
+        In modern times it is imperative we recycle. By recycling we not only improve the dire 
+        condition that our environment is in right now, but we also allow for future generations 
+        to enjoy the earth just like we did. It is our duty as humans to protect Mother Nature 
+        and the simplest way to do that is simply by throwing our trash away in the correct bin. 
+        Now is the moment for action! Now is the moment for RecAIcle!
+    </p>
 
-    <!-- Tensorflow + Teachable Machine libraries -->
+    <h2 class="slogan">Let's all together protect our home!</h2>
+
+    <footer>created by Louiza Kosti</footer>
+
+    <!-- Teachable Machine Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-    <!-- Your logic -->
+    <!-- Your custom script -->
     <script src="script.js"></script>
 
 </body>
