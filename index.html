@@ -3,18 +3,44 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>recAIcle</title>
+    <title>RecAIcle</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-    <h1>Welcome to recAIcle</h1>
-    <p>Your smart recycling assistant powered by AI.</p>
 
-    <button id="classifyBtn">Classify an Image</button>
+    <header>
+        <h1>RecAIcle</h1>
+        <p class="subtitle">Make Recycling Possible</p>
+    </header>
 
-    <div id="result"></div>
+    <main>
+        <div class="card">
+            <h2>Classify Your Waste</h2>
 
+            <div class="button-row">
+                <button id="startWebcamBtn">Start Webcam</button>
+                <input type="file" id="imageUpload" accept="image/*">
+            </div>
+
+            <div id="webcam-container"></div>
+
+            <img id="uploaded-image" style="display:none;" />
+
+            <div id="label-container"></div>
+        </div>
+    </main>
+
+    <footer>
+        RecAIcle © 2025 — Powered by AI
+    </footer>
+
+    <!-- Tensorflow + Teachable Machine libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <!-- Your logic -->
     <script src="script.js"></script>
+
 </body>
 </html>
