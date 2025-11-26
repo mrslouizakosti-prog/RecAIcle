@@ -86,12 +86,17 @@ document.getElementById("imageUpload").onchange = async function (event) {
 // -------------------------
 // PREDICT ONE BEST CLASS
 // -------------------------
-async function predict(input) {
-    const prediction = await model.predict(input);
+async function predict(source) {
+    loading.style.display = "block";
 
-    prediction.sort((a, b) => b.probability - a.probability);
+    const prediction = await model.predict(source);
+    
+    // Get the best prediction
+    let best = prediction[0];
+    for (let p of prediction) {
+        if (p.probability > best.probability) best = p;
+    }
 
-    const best = prediction[0];
-
-    predictionBox.textContent = `${best.className}`;
+    loading.style.display = "none";
+    predictionBox.innerHTML = `${best.className} — ${(best.probability * 100).toFixed(1)}%`;
 }
