@@ -6,10 +6,7 @@ const URL = "https://teachablemachine.withgoogle.com/models/YIf5c0Y8X/";
 let model, webcam, maxPredictions;
 let webcamRunning = false;
 
-const webcamContainer = document.getElementById("webcam-container");
-const uploadedImage = document.getElementById("uploadedImage");
-const loading = document.getElementById("loading");
-const predictionBox = document.getElementById("prediction");
+let webcamContainer, uploadedImage, loading, predictionBox;
 
 // -------------------------
 // LOAD TEACHABLE MACHINE MODEL
@@ -22,17 +19,10 @@ async function loadModel() {
     console.log("Model loaded");
 }
 
-// Ensure model is loaded before anything else
-window.onload = async () => {
-    loading.classList.remove("hidden");
-    await loadModel();
-    loading.classList.add("hidden");
-};
-
 // -------------------------
 // START WEBCAM
 // -------------------------
-document.getElementById("startWebcamBtn").onclick = async () => {
+async function startWebcam() {
     if (webcamRunning) return;
 
     uploadedImage.classList.add("hidden");
@@ -54,21 +44,22 @@ document.getElementById("startWebcamBtn").onclick = async () => {
     webcamContainer.appendChild(webcam.canvas);
 
     document.getElementById("stopWebcamBtn").classList.remove("hidden");
-
     window.requestAnimationFrame(loop);
-};
+}
 
 // -------------------------
 // STOP WEBCAM
 // -------------------------
-document.getElementById("stopWebcamBtn").onclick = () => {
+function stopWebcam() {
     if (webcam && webcam.stream) {
+        // Explicitly stop all tracks
+        webcam.stream.getTracks().forEach(track => track.stop());
         webcam.stop();
-        webcamRunning = false;
-        webcamContainer.innerHTML = "";
-        document.getElementById("stopWebcamBtn").classList.add("hidden");
     }
-};
+    webcamRunning = false;
+    webcamContainer.innerHTML = "";
+    document.getElementById("stopWebcamBtn").classList.add("hidden");
+}
 
 // -------------------------
 // WEBCAM LOOP
@@ -83,40 +74,57 @@ async function loop() {
 // -------------------------
 // FILE UPLOAD
 // -------------------------
-document.getElementById("imageUpload").onchange = async function (event) {
-    if (webcamRunning) {
-        webcam.stop();
-        webcamRunning = false;
-        webcamContainer.innerHTML = "";
-        document.getElementById("stopWebcamBtn").classList.add("hidden");
-    }
+async function handleImageUpload(event) {
+    stopWebcam();
 
     const file = event.target.files[0];
     if (!file) return;
 
     loading.classList.remove("hidden");
 
+    const objectURL = URL.createObjectURL(file);
+    uploadedImage.src = objectURL;
+    uploadedImage.classList.remove("hidden");
+
     uploadedImage.onload = async () => {
         await predict(uploadedImage);
         loading.classList.add("hidden");
+        URL.revokeObjectURL(objectURL); // cleanup
     };
-
-    uploadedImage.src = URL.createObjectURL(file);
-    uploadedImage.classList.remove("hidden");
-};
+}
 
 // -------------------------
 // PREDICT
 // -------------------------
 async function predict(source) {
-    loading.style.display = "block";
+    loading.classList.remove("hidden");
 
     const prediction = await model.predict(source);
     
     // Find the highest probability class
     let best = prediction.reduce((a, b) => (a.probability > b.probability ? a : b));
 
-    loading.style.display = "none";
+    loading.classList.add("hidden");
     predictionBox.innerHTML = `${best.className} — ${(best.probability * 100).toFixed(1)}%`;
 }
+
+// -------------------------
+// INITIALIZE AFTER DOM LOAD
+// -------------------------
+window.onload = async () => {
+    webcamContainer = document.getElementById("webcam-container");
+    uploadedImage = document.getElementById("uploadedImage");
+    loading = document.getElementById("loading");
+    predictionBox = document.getElementById("prediction");
+
+    loading.classList.remove("hidden");
+    await loadModel();
+    loading.classList.add("hidden");
+
+    // Attach event listeners AFTER DOM is ready
+    document.getElementById("startWebcamBtn").onclick = startWebcam;
+    document.getElementById("stopWebcamBtn").onclick = stopWebcam;
+    document.getElementById("imageUpload").onchange = handleImageUpload;
+};
 </script>
+
