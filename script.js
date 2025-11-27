@@ -22,76 +22,57 @@ async function loadModel() {
 // -------------------------
 // START WEBCAM
 // -------------------------
-async function startWebcam() {
-    if (webcamRunning) return;
+async function startWebcam(){
+  try{
+    uploadContainer.style.display='none';
+    webcamContainer.style.display='grid';
 
-    uploadedImage.classList.add("hidden");
-    predictionBox.textContent = "";
+    webcam = new tmImage.Webcam(400, 300, true);
+    await webcam.setup({ facingMode: "user" }); // show prompt; may throw
+    await webcam.play();
+    webcamOn = true;
 
-    webcam = new tmImage.Webcam(300, 300, true);
-
-    try {
-        await webcam.setup(); // request permissions
-        await webcam.play();
-    } catch (err) {
-        alert("Webcam access blocked or not supported.");
-        console.error(err);
-        return;
-    }
-
-    webcamRunning = true;
-    webcamContainer.innerHTML = "";
+    webcamContainer.innerHTML = '';
     webcamContainer.appendChild(webcam.canvas);
+    document.getElementById('stopWebcamBtn').disabled = false;
 
-    document.getElementById("stopWebcamBtn").classList.remove("hidden");
     window.requestAnimationFrame(loop);
+  } catch (e) {
+    console.error(e);
+    statusEl.className = 'badge err';
+    statusEl.textContent = (e.name ? e.name + ': ' : '') + (e.message || 'Webcam failed');
+  }
+}
+async function loop(){
+  if(!webcamOn) return;
+  webcam.update();
+  await predictFromElement(webcam.canvas);
+  window.requestAnimationFrame(loop);
 }
 
-// -------------------------
-// STOP WEBCAM
-// -------------------------
-function stopWebcam() {
-    if (webcam && webcam.stream) {
-        // Explicitly stop all tracks
-        webcam.stream.getTracks().forEach(track => track.stop());
-        webcam.stop();
-    }
-    webcamRunning = false;
-    webcamContainer.innerHTML = "";
-    document.getElementById("stopWebcamBtn").classList.add("hidden");
+function stopWebcam(){
+  if(webcam){ webcam.stop(); webcamOn = false; }
+  webcamContainer.innerHTML='';
+  webcamContainer.style.display='none';
+  uploadContainer.style.display='grid';
+  document.getElementById('stopWebcamBtn').disabled=true;
 }
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  stopWebcam();
+  const url = URL.createObjectURL(file);
+  uploadImg.onload = ()=>{ URL.revokeObjectURL(url); predictFromElement(uploadImg); };
+  uploadImg.src = url;
+});
 
-// -------------------------
-// WEBCAM LOOP
-// -------------------------
-async function loop() {
-    if (!webcamRunning) return;
-    webcam.update();
-    await predict(webcam.canvas);
-    window.requestAnimationFrame(loop);
-}
-
-// -------------------------
-// FILE UPLOAD
-// -------------------------
-async function handleImageUpload(event) {
-    stopWebcam();
-
-    const file = event.target.files[0];
-    if (!file) return;
-
-    loading.classList.remove("hidden");
-
-    const objectURL = URL.createObjectURL(file);
-    uploadedImage.src = objectURL;
-    uploadedImage.classList.remove("hidden");
-
-    uploadedImage.onload = async () => {
-        await predict(uploadedImage);
-        loading.classList.add("hidden");
-        URL.revokeObjectURL(objectURL); // cleanup
-    };
-}
+// Buttons
+document.getElementById('webcamBtn').addEventListener('click', startWebcam);
+document.getElementById('stopWebcamBtn').addEventListener('click', stopWebcam);
+document.getElementById('reloadModel').addEventListener('click', ()=>{
+  const base = modelBase.value.trim();
+  loadModel(base);
+});
 
 // -------------------------
 // PREDICT
